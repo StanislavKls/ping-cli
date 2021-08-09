@@ -1,0 +1,89 @@
+#!/usr/bin/env php
+<?php declare(strict_types = 1);
+
+namespace Stank\Pingcli;
+
+use Minicli\Command\CommandCall;
+
+if (php_sapi_name() !== 'cli') {
+    exit;
+}
+
+$root = dirname(__DIR__);
+
+if (! is_file($root . '/vendor/autoload.php')) {
+    $root = dirname(__DIR__, 4);
+}
+
+require $root . '/vendor/autoload.php';
+
+use Minicli\App;
+
+$app = new App();
+
+$app->setSignature(<<<EOD
+           _                        ___ 
+    ____  (_)___  ____ _      _____/ (_)
+   / __ \/ / __ \/ __ `/_____/ ___/ / / 
+  / /_/ / / / / / /_/ /_____/ /__/ / /  
+ / .___/_/_/ /_/\__, /      \___/_/_/   
+/_/            /____/ \e[0;32m Ver. 0.0.1
+
+EOD);
+
+$app->registerCommand('ping', function (CommandCall $input) use ($app) {
+    $url = $input->getParam('url') ?? null;
+
+    if (!$url) {
+        $app->getPrinter()->error('Parameter <url> was not provided');
+        return 1;
+    }
+
+    if (!filter_var($url, FILTER_VALIDATE_URL)) {
+        $app->getPrinter()->error('Parameter <url> not a valid URL.');
+        return 1;
+    }
+
+    if (!preg_match('#^https?://#i', $url)) {
+        $app->getPrinter()->error('Parameter <url> has to include a valid HTTP protocol.');
+        return 1;
+    }
+    $start_time = microtime(true);
+    if (!@file_get_contents($url, false, getStreamContext())) {
+        $app->getPrinter()->error('Parameter <url> could not be reached.');
+        return 1;
+    }
+    $end_time = microtime(true);
+
+    $app->getPrinter()->display(sprintf('Est. ping time: %.02f sec', ($end_time - $start_time)));
+});
+
+$app->registerCommand('help', function (CommandCall $input) use ($app) {
+    $app->getPrinter()->display(sprintf(<<<EOD
+    For usage use you need to pass url parameter.
+    Example
+    ./bin/ping-cli ping url=https://devdojo.com
+EOD));
+});
+
+function getStreamContext() {
+    $headers = implode("\r\n", [
+        'User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_16_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.77 Safari/537.36',
+        'Accept: text/html,application/xhtml+xml,application/xml;q=0.9',
+        'Accept-Language: en-US,en;q=0.9',
+        'Upgrade-Insecure-Requests: 1',
+        'X-Application: PingCLI/0.0.1',
+        'Sec-GPC: 1',
+    ]);
+
+    return stream_context_create([
+        'http' => [
+            'method' => 'GET', 
+            'header' => $headers,
+        ]
+    ]);
+}
+
+$app->runCommand($argv);
+
+
