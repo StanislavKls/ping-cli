@@ -1,0 +1,14 @@
+{
+    "name": "stanislavk/ping-cli",
+    "description": "simple CLI app with MiniCLI",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Kletsov Stanislav",
+            "email": "klecov@gmail.com"
+        }
+    ],
+    "require": {
+        "minicli/minicli": "^2.2"
+    }
+}
